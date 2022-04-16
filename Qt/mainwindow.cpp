@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QMessageBox>
 #include <QScrollBar>
+#include <QSerialPortInfo>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -28,6 +29,17 @@ MainWindow::MainWindow(QWidget *parent)
 
     LogWnd_WriteLine(QString("Joystick start with %1 axis.").arg(pJst->joynums));
     LogWnd_WriteLine("Sys Start.");
+
+    foreach( const QSerialPortInfo &info, QSerialPortInfo::availablePorts())
+    {
+        LogWnd_WriteLine(QString("serial port system loction: %1").arg(info.systemLocation()));
+        LogWnd_WriteLine(QString("serial port name: %1").arg(info.portName()));
+#ifdef _WIN32
+        ui->lineEdit_serialPortName->setText(info.portName());
+#else
+        ui->lineEdit_serialPortName->setText(info.systemLocation());
+#endif
+    }
 }
 
 MainWindow::~MainWindow()
