@@ -144,7 +144,11 @@ int FormatFrame(uint8_t *pbuf)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	uint8_t uart2_snd_buff[]={"Uart2 OK.\n"};
+	char uart2_snd_buff[30];
+	uint8_t uart2_recv_buff_mirror[UART2_RECV_BUFF_LEN];
+	uint8_t uart2_err_cnt=0;
+	uint16_t i;
+	uint8_t checksum=0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -182,31 +186,49 @@ while (1)
 		{
 			//HAL_UART_Transmit(&huart2,uart2_snd_buff,sizeof(uart2_snd_buff),1000);
 			//while(__HAL_UART_GET_FLAG(&huart2,UART_FLAG_TC)!=SET);
-			int rtn = FormatFrame(uart2_recv_buff);
-			if(uart2_recv_buff[0]==0xdf && rtn!=-1)
+			//memcpy(uart2_recv_buff_mirror,uart2_recv_buff,UART2_RECV_BUFF_LEN);
+			for(i=0;i<UART2_RECV_BUFF_LEN;i++)
 			{
+				uart2_recv_buff_mirror[i]=uart2_recv_buff[i];
+			}
+			int rtn = FormatFrame(uart2_recv_buff_mirror);
+			if(uart2_recv_buff_mirror[0]==0xdf && rtn!=-1)
+			{
+				//Ð£ÑéºÍ
+				checksum=0;
+				for(i=0;i<UART2_RECV_BUFF_LEN-1;i++)
+				{
+					checksum+=uart2_recv_buff_mirror[i];
+				}
+				if(checksum!=uart2_recv_buff_mirror[UART2_RECV_BUFF_LEN-1])
+				{
+					//sprintf(uart2_snd_buff,"Uart2 Err Cnt: %d\n",uart2_err_cnt);
+					//HAL_UART_Transmit(&huart2,(uint8_t*)uart2_err_cnt,1,1000);
+					//continue;
+				}
+				
 				//0:0xdf  1:CH1_H 2:CH1_L 3:CH2_H 4:CH2_L 5:CH3_H 6:CH3_L 
 				//7:CH4_H 8:CH4_L 9:CH5_H 10:CH5_L 11:CH6_H 12:CH6_L
-				dataH[0] = uart2_recv_buff[1];
-				dataL[0] = uart2_recv_buff[2];
+				dataH[0] = uart2_recv_buff_mirror[1];
+				dataL[0] = uart2_recv_buff_mirror[2];
 				
-				dataH[1] = uart2_recv_buff[3];
-				dataL[1] = uart2_recv_buff[4];
+				dataH[1] = uart2_recv_buff_mirror[3];
+				dataL[1] = uart2_recv_buff_mirror[4];
 				
-				dataH[2] = uart2_recv_buff[5];
-				dataL[2] = uart2_recv_buff[6];
+				dataH[2] = uart2_recv_buff_mirror[5];
+				dataL[2] = uart2_recv_buff_mirror[6];
 				
-				dataH[3] = uart2_recv_buff[7];
-				dataL[3] = uart2_recv_buff[8];
+				dataH[3] = uart2_recv_buff_mirror[7];
+				dataL[3] = uart2_recv_buff_mirror[8];
 				
-				dataH[4] = uart2_recv_buff[9];
-				dataL[4] = uart2_recv_buff[10];
+				dataH[4] = uart2_recv_buff_mirror[9];
+				dataL[4] = uart2_recv_buff_mirror[10];
 				
-				dataH[5] = uart2_recv_buff[11];
-				dataL[5] = uart2_recv_buff[12];
+				dataH[5] = uart2_recv_buff_mirror[11];
+				dataL[5] = uart2_recv_buff_mirror[12];
 				
-				dataH[6] = uart2_recv_buff[13];
-				dataL[6] = uart2_recv_buff[14];
+				dataH[6] = uart2_recv_buff_mirror[13];
+				dataL[6] = uart2_recv_buff_mirror[14];
 			}
 			SBUS_SendPkg(dataH,dataL);
 			HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
