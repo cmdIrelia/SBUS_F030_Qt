@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QSerialPort>
+#include <QUdpSocket>
 #include <QTimer>
 #include <QPlainTextEdit>
 #include "joysitck_xbox360.h"
@@ -35,6 +36,10 @@ private:
     void LogWnd_WriteLine(QString line);
     QPlainTextEdit *logWnd;
 
+    bool use_serialPortToCom;
+
+    QUdpSocket* m_sender;   //udp发送端
+
 private slots:
     void on_refreshUI_timeout();
 
@@ -66,6 +71,9 @@ private slots:
 //    void nameChanged(QString value);
 
     void on_pushButton_clicked();
-    void on_pushButton_2_clicked();
+    void on_radioButton_serial_toggled(bool checked);
+    void on_radioButton_udp_toggled(bool checked);
+    void on_pushButton_openSerialPort_clicked();
+    void on_pushButton_openUdp_clicked();
 };
 #endif // MAINWINDOW_H

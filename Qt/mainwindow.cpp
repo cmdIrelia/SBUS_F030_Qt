@@ -21,7 +21,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     timerRefreshUI = new QTimer();
     connect(this->timerRefreshUI,SIGNAL(timeout()),this,SLOT(on_refreshUI_timeout()));
-    timerRefreshUI->start(20);
+    timerRefreshUI->start(50);
 
     //Log窗口只读
     ui->plainTextEdit_logWnd->setReadOnly(true);
@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget *parent)
     LogWnd_WriteLine(QString("Joystick start with %1 axis.").arg(pJst->joynums));
     LogWnd_WriteLine("Sys Start.");
 
+    //遍历串口
     foreach( const QSerialPortInfo &info, QSerialPortInfo::availablePorts())
     {
         LogWnd_WriteLine(QString("serial port system loction: %1").arg(info.systemLocation()));
@@ -40,6 +41,9 @@ MainWindow::MainWindow(QWidget *parent)
         ui->lineEdit_serialPortName->setText(info.systemLocation());
 #endif
     }
+
+    //新建UDP Skt
+    m_sender = new QUdpSocket(this);
 }
 
 MainWindow::~MainWindow()
@@ -54,7 +58,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
 {
-    const int SERIAL_PORT_SND_LEN = 15;
+    const int SERIAL_PORT_SND_LEN = 16;
     QByteArray qbaSerialPortData(SERIAL_PORT_SND_LEN,0x00);
 
     qbaSerialPortData[0]=quint8(0xdf);
@@ -90,10 +94,33 @@ void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
     if(ui->radioButton_flightMode5->isChecked()) {qbaSerialPortData[13]=(flightModeTable[4])>>8;qbaSerialPortData[14]=(flightModeTable[4])&0xff;}
     if(ui->radioButton_flightMode6->isChecked()) {qbaSerialPortData[13]=(flightModeTable[5])>>8;qbaSerialPortData[14]=(flightModeTable[5])&0xff;}
 
-    if(serialPort1->isOpen())
+    //校验和
+    quint8 checksum=0;
+    foreach (quint8 d, qbaSerialPortData) {
+        checksum+=d;
+    }
+    qbaSerialPortData[SERIAL_PORT_SND_LEN-1]=checksum;
+
+    if(use_serialPortToCom) //是否通过串口进行通信
     {
-        serialPort1->write(qbaSerialPortData,qbaSerialPortData.size());
-        serialPort1->flush();
+        if(serialPort1->isOpen())
+        {
+            serialPort1->write(qbaSerialPortData,qbaSerialPortData.size());
+            serialPort1->flush();
+        }
+    }
+    else
+    {
+        if(m_sender)
+        {
+            int sendSize = m_sender->writeDatagram(qbaSerialPortData,QHostAddress(ui->lineEdit_ipAddress->text()),ui->lineEdit_udpPort->text().toInt());
+            //qDebug()<<"SendSize = "<<sendSize;
+        }
+        else
+        {
+            qDebug()<<"udp not open";
+            LogWnd_WriteLine("UDP Pointer Null.");
+        }
     }
 }
 
@@ -280,7 +307,39 @@ void MainWindow::on_pushButton_clicked()
     pJst->okToQuit();
 }
 
-void MainWindow::on_pushButton_2_clicked()
+void MainWindow::on_radioButton_serial_toggled(bool checked)
+{
+    if(checked)
+    {
+        this->use_serialPortToCom = true;
+        ui->lineEdit_serialPortName->setEnabled(true);
+        LogWnd_WriteLine("Serial Port communication selected.");
+    }
+    else
+    {
+        this->use_serialPortToCom = false;
+        ui->lineEdit_serialPortName->setEnabled(false);
+    }
+}
+
+void MainWindow::on_radioButton_udp_toggled(bool checked)
+{
+    if(checked)
+    {
+        this->use_serialPortToCom = false;
+        ui->lineEdit_ipAddress->setEnabled(true);
+        ui->lineEdit_udpPort->setEnabled(true);
+        LogWnd_WriteLine("UDP communication selected.");
+    }
+    else
+    {
+        this->use_serialPortToCom = true;
+        ui->lineEdit_ipAddress->setEnabled(false);
+        ui->lineEdit_udpPort->setEnabled(false);
+    }
+}
+
+void MainWindow::on_pushButton_openSerialPort_clicked()
 {
     serialPort1->setPortName(ui->lineEdit_serialPortName->text());
     if(!serialPort1->open(QIODevice::ReadWrite))
@@ -296,4 +355,26 @@ void MainWindow::on_pushButton_2_clicked()
     serialPort1->setDataBits(QSerialPort::Data8);
     qDebug()<<"serial port start OK.";
     LogWnd_WriteLine("serial port start OK.");
+}
+
+void MainWindow::on_pushButton_openUdp_clicked()
+{
+    if(m_sender)
+    {
+        LogWnd_WriteLine("udp rc start OK.");
+        //int port = ui->lineEdit_udpPort->text().toInt();
+//        bool isConfigOk = m_sender->bind(port);
+//        if(isConfigOk)
+//        {
+//            LogWnd_WriteLine("udp rc start OK.");
+//        }
+//        else
+//        {
+//            LogWnd_WriteLine("udp rc start Failed.");
+//        }
+    }
+//    else
+//    {
+//        LogWnd_WriteLine("udp pointer = null");
+//    }
 }

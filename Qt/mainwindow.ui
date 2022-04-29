@@ -341,32 +341,6 @@
      <set>Qt::AlignCenter</set>
     </property>
    </widget>
-   <widget class="QLineEdit" name="lineEdit_serialPortName">
-    <property name="geometry">
-     <rect>
-      <x>320</x>
-      <y>500</y>
-      <width>131</width>
-      <height>20</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>COM20</string>
-    </property>
-   </widget>
-   <widget class="QPushButton" name="pushButton_2">
-    <property name="geometry">
-     <rect>
-      <x>450</x>
-      <y>500</y>
-      <width>111</width>
-      <height>23</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Open SerialPort</string>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_btnLeftTrigger">
     <property name="geometry">
      <rect>
@@ -496,9 +470,9 @@
    <widget class="QGroupBox" name="groupBox_2">
     <property name="geometry">
      <rect>
-      <x>580</x>
+      <x>650</x>
       <y>470</y>
-      <width>181</width>
+      <width>111</width>
       <height>81</height>
      </rect>
     </property>
@@ -508,7 +482,7 @@
     <widget class="QRadioButton" name="radioButton_kill">
      <property name="geometry">
       <rect>
-       <x>20</x>
+       <x>10</x>
        <y>30</y>
        <width>89</width>
        <height>16</height>
@@ -528,6 +502,110 @@
       <height>201</height>
      </rect>
     </property>
+   </widget>
+   <widget class="QGroupBox" name="groupBox_3">
+    <property name="geometry">
+     <rect>
+      <x>310</x>
+      <y>470</y>
+      <width>331</width>
+      <height>81</height>
+     </rect>
+    </property>
+    <property name="title">
+     <string>COM Config</string>
+    </property>
+    <widget class="QLineEdit" name="lineEdit_serialPortName">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>20</y>
+       <width>161</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>COM</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_openSerialPort">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>20</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Open SerialPort</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_ipAddress">
+     <property name="geometry">
+      <rect>
+       <x>30</x>
+       <y>50</y>
+       <width>101</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>192.168.100.45</string>
+     </property>
+    </widget>
+    <widget class="QLineEdit" name="lineEdit_udpPort">
+     <property name="geometry">
+      <rect>
+       <x>140</x>
+       <y>50</y>
+       <width>51</width>
+       <height>20</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>3335</string>
+     </property>
+    </widget>
+    <widget class="QPushButton" name="pushButton_openUdp">
+     <property name="geometry">
+      <rect>
+       <x>200</x>
+       <y>50</y>
+       <width>111</width>
+       <height>23</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Open UDP</string>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_serial">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>20</y>
+       <width>89</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
+    <widget class="QRadioButton" name="radioButton_udp">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>50</y>
+       <width>89</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string/>
+     </property>
+    </widget>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">

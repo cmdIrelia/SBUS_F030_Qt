@@ -1,5 +1,5 @@
 QT       += core gui
-QT += serialport
+QT += serialport network
 
 LIBS += -lWinmm
 
