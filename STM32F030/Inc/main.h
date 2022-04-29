@@ -47,7 +47,7 @@ extern "C" {
 
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
-#define UART2_RECV_BUFF_LEN (15)
+#define UART2_RECV_BUFF_LEN (16)
 /* USER CODE END EM */
 
 /* Exported functions prototypes ---------------------------------------------*/
