@@ -1,5 +1,5 @@
 # SBUS_F030_Qt
-可用的SUBS遥控器。<br>
+可用的SUBS遥控器，以及WiFi数传。<br>
 PX4已经验证，calibrated。<br>
 连接：<br>
 |ESP32| F030        | PX4 |PC|
