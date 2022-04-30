@@ -34,3 +34,9 @@ FORMS += \
 qnx: target.path = /tmp/$${TARGET}/bin
 else: unix:!android: target.path = /opt/$${TARGET}/bin
 !isEmpty(target.path): INSTALLS += target
+
+DISTFILES += \
+    images/logo.ico \
+    images/logo.rc
+
+RC_FILE += images/logo.rc

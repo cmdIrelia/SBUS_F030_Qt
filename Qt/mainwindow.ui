@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>RC_Irelia</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLabel" name="label_axisLeftY">

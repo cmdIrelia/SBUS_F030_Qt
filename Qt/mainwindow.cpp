@@ -12,19 +12,12 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    //LogWnd_WriteLine("Sys Start.1");
-
     serialPort1 = new QSerialPort();
-
-    //LogWnd_WriteLine("Sys Start.2");
 
     //连接设备
     pJst = new Joysitck_Xbox360();
     connect(this->pJst,SIGNAL(finished()),this->pJst,SLOT(deleteLater()));
     pJst->start();
-
-    //LogWnd_WriteLine("Sys Start.3");
-
 
     timerRefreshUI = new QTimer();
     connect(this->timerRefreshUI,SIGNAL(timeout()),this,SLOT(refreshUI_timeout()));
