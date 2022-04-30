@@ -4,6 +4,7 @@
 #include <QMessageBox>
 #include <QScrollBar>
 #include <QSerialPortInfo>
+#include <QDateTime>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,16 +12,22 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    serialPort1 = new QSerialPort;
+    //LogWnd_WriteLine("Sys Start.1");
+
+    serialPort1 = new QSerialPort();
+
+    //LogWnd_WriteLine("Sys Start.2");
 
     //连接设备
-    pJst = new Joysitck_Xbox360;
+    pJst = new Joysitck_Xbox360();
     connect(this->pJst,SIGNAL(finished()),this->pJst,SLOT(deleteLater()));
     pJst->start();
 
+    //LogWnd_WriteLine("Sys Start.3");
+
 
     timerRefreshUI = new QTimer();
-    connect(this->timerRefreshUI,SIGNAL(timeout()),this,SLOT(on_refreshUI_timeout()));
+    connect(this->timerRefreshUI,SIGNAL(timeout()),this,SLOT(refreshUI_timeout()));
     timerRefreshUI->start(50);
 
     //Log窗口只读
@@ -44,6 +51,14 @@ MainWindow::MainWindow(QWidget *parent)
 
     //新建UDP Skt
     m_sender = new QUdpSocket(this);
+
+    //切换到UDP通信模式
+    ui->radioButton_udp->setChecked(true);
+
+    //初始化总距
+    realThrottle = 0;
+    //初始化总距模式
+    use_postionalOrIncremental = THROTTLE_POSTIONAL;
 }
 
 MainWindow::~MainWindow()
@@ -63,9 +78,42 @@ void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
 
     qbaSerialPortData[0]=quint8(0xdf);
 
-    //左右摇杆
-    qbaSerialPortData[1]=(jst->leftAxisY>>5)>>8;qbaSerialPortData[2]=(jst->leftAxisY>>5)&0xff;
+    ///左右摇杆
+    //左摇杆
+    //qbaSerialPortData[1]=(jst->leftAxisY>>5)>>8;qbaSerialPortData[2]=(jst->leftAxisY>>5)&0xff;
     qbaSerialPortData[3]=(jst->leftAxisX>>5)>>8;qbaSerialPortData[4]=(jst->leftAxisX>>5)&0xff;
+    //总距模式配置
+    if(jst->buttonLeftBreak)    //选择增量式总距
+    {
+        ui->checkBox->setChecked(true);
+        use_postionalOrIncremental = THROTTLE_INCREMENTAL;
+    }
+    else if(jst->buttonLeftTrigger) //选择位置式总距
+    {
+        ui->checkBox->setChecked(false);
+        use_postionalOrIncremental = THROTTLE_POSTIONAL;
+    }
+    if(THROTTLE_POSTIONAL == use_postionalOrIncremental)  //使用位置式，采样值等于实际值
+    {
+        realThrottle = jst->leftAxisY;
+        ui->progressBar_throttle->setValue(realThrottle);
+        qbaSerialPortData[1]=(realThrottle>>5)>>8;qbaSerialPortData[2]=(realThrottle>>5)&0xff;
+    }
+    else if(THROTTLE_INCREMENTAL == use_postionalOrIncremental)    //使用增量式
+    {
+        realThrottle+=int((jst->leftAxisY-32768)/90);
+        realThrottle = realThrottle>=65535?65535:realThrottle;
+        realThrottle = realThrottle<=0?0:realThrottle;
+        ui->progressBar_throttle->setValue(realThrottle);
+
+        qbaSerialPortData[1]=(realThrottle>>5)>>8;qbaSerialPortData[2]=(realThrottle>>5)&0xff;
+    }
+    else    //不应该进这个分支
+    {
+        LogWnd_WriteLine("Should NOT be here __FUNC__SbusGenerator__");
+    }
+
+    //右摇杆
     qbaSerialPortData[5]=(jst->rightAxisY>>5)>>8;qbaSerialPortData[6]=(jst->rightAxisY>>5)&0xff;
     qbaSerialPortData[7]=(jst->rightAxisX>>5)>>8;qbaSerialPortData[8]=(jst->rightAxisX>>5)&0xff;
 
@@ -114,6 +162,7 @@ void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
         if(m_sender)
         {
             int sendSize = m_sender->writeDatagram(qbaSerialPortData,QHostAddress(ui->lineEdit_ipAddress->text()),ui->lineEdit_udpPort->text().toInt());
+            Q_UNUSED(sendSize);
             //qDebug()<<"SendSize = "<<sendSize;
         }
         else
@@ -133,8 +182,11 @@ void MainWindow::LogWnd_WriteLine(QPlainTextEdit *logWnd, QString line)
     {
         logWnd->clear();
     }
+    //获取时间
+    QDateTime curDateTime=QDateTime::currentDateTime();
+    QString time = curDateTime.toString ("hh:mm:ss");
     //插入新的一行文本
-    logWnd->insertPlainText(line+'\n');
+    this->logWnd->insertPlainText("["+time+"] "+line+'\n');
     //滚动条滚动到底部
     QScrollBar *scrollbar = logWnd->verticalScrollBar();
     if(scrollbar)
@@ -145,6 +197,7 @@ void MainWindow::LogWnd_WriteLine(QPlainTextEdit *logWnd, QString line)
 
 void MainWindow::LogWnd_WriteLine(QString line)
 {
+    qDebug()<<line;
     //移动光标到最后一行
     this->logWnd->moveCursor(QTextCursor::End,QTextCursor::MoveAnchor);
     //文本数量过大就清空
@@ -152,8 +205,11 @@ void MainWindow::LogWnd_WriteLine(QString line)
     {
         this->logWnd->clear();
     }
+    //获取时间
+    QDateTime curDateTime=QDateTime::currentDateTime();
+    QString time = curDateTime.toString ("hh:mm:ss");
     //插入新的一行文本
-    this->logWnd->insertPlainText(line+'\n');
+    this->logWnd->insertPlainText("["+time+"] "+line+'\n');
     //滚动条滚动到底部
     QScrollBar *scrollbar = this->logWnd->verticalScrollBar();
     if(scrollbar)
@@ -162,7 +218,7 @@ void MainWindow::LogWnd_WriteLine(QString line)
     }
 }
 
-void MainWindow::on_refreshUI_timeout()
+void MainWindow::refreshUI_timeout()
 {
     axisRightXChanged(this->pJst->rightAxisX);
     axisRightYChanged(this->pJst->rightAxisY);
@@ -362,19 +418,23 @@ void MainWindow::on_pushButton_openUdp_clicked()
     if(m_sender)
     {
         LogWnd_WriteLine("udp rc start OK.");
-        //int port = ui->lineEdit_udpPort->text().toInt();
-//        bool isConfigOk = m_sender->bind(port);
-//        if(isConfigOk)
-//        {
-//            LogWnd_WriteLine("udp rc start OK.");
-//        }
-//        else
-//        {
-//            LogWnd_WriteLine("udp rc start Failed.");
-//        }
     }
-//    else
-//    {
-//        LogWnd_WriteLine("udp pointer = null");
-//    }
+    else
+    {
+        LogWnd_WriteLine("udp pointer = null");
+    }
+}
+
+void MainWindow::on_checkBox_toggled(bool checked)
+{
+    if(checked)
+    {
+        LogWnd_WriteLine("Switch to Incremental mode.");
+        use_postionalOrIncremental = THROTTLE_INCREMENTAL;
+    }
+    else
+    {
+        LogWnd_WriteLine("Switch to Postional mode.");
+        use_postionalOrIncremental = THROTTLE_POSTIONAL;
+    }
 }
