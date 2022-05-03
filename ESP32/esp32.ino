@@ -1,4 +1,4 @@
-﻿#include <WiFi.h>
+#include <WiFi.h>
 #include <WiFiUdp.h>
 
 //LED管脚
@@ -8,12 +8,16 @@ const char* ssid = "XXX";
 const char* password = "XXX";
 
 //WiFi连接标志
-bool connected;
+bool connected,last_connect_state;
+
+//IP地址最后一段
+#define LAST_IP_SECTOR 114
 
 //IP address to send UDP data to:
 // either use the ip address of the server or
 // a network broadcast address
-const char * udpAddress = "192.168.100.114";
+//const char * udpAddress = "192.168.100.114";
+IPAddress staticLocalIp,staticRemoteIp;
 const int udpPort_bit = 3333;
 const int udpPort_data = 3334;
 const int udpPort_rc = 3335;
@@ -22,6 +26,8 @@ const int udpPort_rc = 3335;
 WiFiUDP udp_BIT;
 WiFiUDP udp_Data;
 WiFiUDP udp_RC;
+
+IPAddress remoteIp(WiFi.localIP());
 
 //BIT上报分频
 uint16_t bit_prescaler = 0;
@@ -38,8 +44,10 @@ uint8_t serial2_recv_buf[USART2_RECV_BUF_SZIE];
 #define UDP_DATA_RECV_BUF_SIZE (2048)
 char udp_data_recv_buf[UDP_DATA_RECV_BUF_SIZE];
 
+
 void StartUDPService()
 {
+   
   //initializes the UDP state
   //This initializes the transfer buffer
   udp_BIT.begin(WiFi.localIP(),udpPort_bit);
@@ -94,6 +102,13 @@ void setup() {
 }
 
 void loop() {
+  //连接成功则配置一次静态IP
+  if(last_connect_state == false && connected == true)
+  {
+    remoteIp = WiFi.localIP();
+    remoteIp[3] = LAST_IP_SECTOR;
+  }
+  
   //only send data when connected
   if (connected) {
     //DATA UDP Process
@@ -104,7 +119,7 @@ void loop() {
         uart_recv_cnt+=len; //数据长度记录,BIT
         len = len>USART2_RECV_BUF_SZIE?USART2_RECV_BUF_SZIE:len;  //防止超出缓冲区长度
         Serial2.readBytes(serial2_recv_buf, len);
-        udp_Data.beginPacket(udpAddress, udpPort_data);
+        udp_Data.beginPacket(remoteIp, udpPort_data);
         udp_Data.write(serial2_recv_buf, len);
         udp_Data.endPacket();
       }
@@ -135,7 +150,7 @@ void loop() {
     {
       bit_prescaler=0;
       //BIT UDP Send a packet
-      udp_BIT.beginPacket(udpAddress, udpPort_bit);
+      udp_BIT.beginPacket(remoteIp, udpPort_bit);
       udp_BIT.printf("Time: %.2f ", float(millis() / 1000));
       udp_BIT.printf("NetState: %d\n", WiFi.status());
       udp_BIT.printf("udp recv: %ld uart recv: %ld rc recv: %ld", udp_recv_cnt,uart_recv_cnt,udp_rc_recv_cnt);
