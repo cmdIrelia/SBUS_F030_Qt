@@ -20,13 +20,14 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "dma.h"
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <string.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,6 +55,12 @@ uint8_t timer3_timeout = 0;
 uint8_t uart2_recv_buff[UART2_RECV_BUFF_LEN];
 
 uint8_t dataH[16],dataL[16];
+
+
+//UART1 透传变量
+extern volatile uint8_t uart1_loopback_rx_len;  //接收一帧数据的长度
+extern volatile uint8_t uart1_loopback_recv_end_flag; //一帧数据接收完成标志
+uint8_t uart1_loopback_buff[UART1_BUFF_LOOPBACK_LEN];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -144,9 +151,9 @@ int FormatFrame(uint8_t *pbuf)
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-	char uart2_snd_buff[30];
+	//char uart2_snd_buff[30];
 	uint8_t uart2_recv_buff_mirror[UART2_RECV_BUFF_LEN];
-	uint8_t uart2_err_cnt=0;
+	//uint8_t uart2_err_cnt=0;
 	uint16_t i;
 	uint8_t checksum=0;
   /* USER CODE END 1 */
@@ -169,10 +176,32 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_TIM3_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+	//配置为SBUS透传模式
+	if(GPIO_PIN_SET==HAL_GPIO_ReadPin(MODE_CONFIG_GPIO_Port,MODE_CONFIG_Pin))
+	{
+		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE); //使能IDLE中断
+		//DMA接收函数，此句一定要加，不加接收不到第一次传进来的实数据，是空的，且此时接收到的数据长度为缓存器的数据长度
+		HAL_UART_Receive_DMA(&huart1,uart1_loopback_buff,UART1_BUFF_LOOPBACK_LEN);
+		
+		while(1)
+		{
+			HAL_GPIO_TogglePin(LED_GPIO_Port,LED_Pin);
+			if(uart1_loopback_recv_end_flag == 1)
+			{
+				HAL_UART_Transmit_DMA(&huart1, uart1_loopback_buff, uart1_loopback_rx_len);
+				uart1_loopback_rx_len = 0;
+				uart1_loopback_recv_end_flag = 0;
+				memset(uart1_loopback_buff, 0 ,uart1_loopback_rx_len);
+				HAL_UART_Receive_DMA(&huart1, uart1_loopback_buff, UART1_BUFF_LOOPBACK_LEN);
+			}
+		}
+	}
 
 	HAL_TIM_Base_Start_IT(&htim3);
 	HAL_UART_Receive_IT(&huart2,(uint8_t*)uart2_recv_buff,UART2_RECV_BUFF_LEN);
