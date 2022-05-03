@@ -90,7 +90,6 @@ void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
     {
         realThrottle = jst->leftAxisY;
         ui->progressBar_throttle->setValue(realThrottle);
-        qbaSerialPortData[1]=(realThrottle>>5)>>8;qbaSerialPortData[2]=(realThrottle>>5)&0xff;
     }
     else if(THROTTLE_INCREMENTAL == use_postionalOrIncremental)    //使用增量式
     {
@@ -98,13 +97,13 @@ void MainWindow::SbusGenerator(Joysitck_Xbox360 *jst)
         realThrottle = realThrottle>=65535?65535:realThrottle;
         realThrottle = realThrottle<=0?0:realThrottle;
         ui->progressBar_throttle->setValue(realThrottle);
-
-        qbaSerialPortData[1]=(realThrottle>>5)>>8;qbaSerialPortData[2]=(realThrottle>>5)&0xff;
     }
     else    //不应该进这个分支
     {
         LogWnd_WriteLine("Should NOT be here __FUNC__SbusGenerator__");
     }
+    qbaSerialPortData[1]=(realThrottle>>5)>>8;qbaSerialPortData[2]=(realThrottle>>5)&0xff;
+    ui->label_throttle->setText(QString::number(realThrottle));
 
     //右摇杆
     qbaSerialPortData[5]=(jst->rightAxisY>>5)>>8;qbaSerialPortData[6]=(jst->rightAxisY>>5)&0xff;
