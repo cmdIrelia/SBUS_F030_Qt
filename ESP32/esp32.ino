@@ -261,12 +261,8 @@ void setup_wifi() {
   wifi_connected = false;
 
   //串口初始化
-  Serial.begin(115200);
   Serial2.begin(57600);
   Serial2.setRxBufferSize(USART2_RECV_BUF_SZIE);
-
-  //LED初始化
-  pinMode(K1 , OUTPUT);
 
   //WiFi断开连接
   WiFi.disconnect(true);
@@ -278,11 +274,13 @@ void setup_wifi() {
   WiFi.onEvent(Wifi_disconnected, SYSTEM_EVENT_STA_DISCONNECTED);
   //WiFi启动
   WiFi.begin(ssid_string, pwd_string);
-  //Serial.println("Waiting for WIFI network...");
+  Serial.println("Waiting for WIFI network...");
 }
 
 //================================= WIFI END=====================================================
 void setup() {
+  //LED初始化
+  pinMode(K1 , OUTPUT);
   Serial.begin(115200);
   setup_BLE();
   setup_eeprom();
@@ -388,5 +386,4 @@ void loop() {
     delay(100);
     digitalWrite(K1, 1 - digitalRead(K1));
   }
-
 }
