@@ -1,11 +1,12 @@
 #include <Arduino.h>
-#include "soc/rtc_wdt.h"    // 设置看门狗应用
 
+#define SP_MAVLINK Serial
+#define SP_DEBUG Serial2
 //============GLOBAL CONST =============
 #define BLE_RECV_BUFF_LEN (15)
 
 //LED管脚
-#define K1 23
+#define K1 32
 //============GLOBAL CONST END =============
 
 //===========  COMMOM ASSETS  ============
@@ -24,9 +25,6 @@ char read_ssid[BLE_RECV_BUFF_LEN],read_pwd[BLE_RECV_BUFF_LEN];
 #include <ESPAsyncWebServer.h>
 #include <AsyncElegantOTA.h>
 
-//const char* ssid = "Haorenjie";
-//const char* password = "peter930319";
-
 AsyncWebServer server(80);
 
 bool g_ota_is_running = false;
@@ -41,7 +39,7 @@ void OTA_setup(void) {
 
     AsyncElegantOTA.begin(&server);    // Start AsyncElegantOTA
     server.begin();
-    Serial.println("HTTP server started");
+    SP_DEBUG.println("HTTP server started");
   }
 }
 
@@ -69,7 +67,7 @@ void setup_eeprom() {
   delay(1000);
   if (!EEPROM.begin(EEPROM_SIZE))
   {
-    //Serial.println("failed to initialise EEPROM"); 
+    //SP_DEBUG.println("failed to initialise EEPROM"); 
     delay(1000000);
   }
 }
@@ -106,15 +104,15 @@ void eeprom_save(char *ssid, char* pwd)
   // check
   if(strcmp(read_ssid,ssid)!=0 || strcmp(read_pwd,pwd)!=0)
   {
-    //Serial.println(ssid);
-    //Serial.println(read_ssid);
-    //Serial.println(pwd);
-    //Serial.println(read_pwd);
-    //Serial.println("Failed to read back ssid or/and pwd.");
+    //SP_DEBUG.println(ssid);
+    //SP_DEBUG.println(read_ssid);
+    //SP_DEBUG.println(pwd);
+    //SP_DEBUG.println(read_pwd);
+    //SP_DEBUG.println("Failed to read back ssid or/and pwd.");
   }
   else
   {
-    Serial.println("Save Succeed.");
+    SP_DEBUG.println("Save Succeed.");
   }
 }
 
@@ -173,10 +171,10 @@ class MyCallbacks: public BLECharacteristicCallbacks {
           }
         }
       }
-      //Serial.print("ssid/pwd:");
-      //Serial.print(ssid_string);
-      //Serial.print("/");
-      //Serial.println(pwd_string);
+      //SP_DEBUG.print("ssid/pwd:");
+      //SP_DEBUG.print(ssid_string);
+      //SP_DEBUG.print("/");
+      //SP_DEBUG.println(pwd_string);
       
       eeprom_save(ssid_string, pwd_string);
     }
@@ -184,7 +182,7 @@ class MyCallbacks: public BLECharacteristicCallbacks {
 
 
 void setup_BLE() {
-  //Serial.begin(115200);
+  //SP_DEBUG.begin(115200);
 
   // Create the BLE Device
   BLEDevice::init("Drone Transciver");
@@ -255,12 +253,12 @@ IPAddress remoteIp(WiFi.localIP());
 uint16_t bit_prescaler = 0;
 const uint16_t BIT_PRESCALER = 300;  //分频计数
 uint32_t udp_recv_cnt = 0;  //udp接收到的字节计数
-uint32_t uart_recv_cnt = 0; //serial2接收到的字节计数
+uint32_t uart_recv_cnt = 0; //SP_MAVLINK接收到的字节计数
 uint32_t udp_rc_recv_cnt = 0; //RC控制指令接收字节计数
 
 //串口2接收缓冲区
 #define USART2_RECV_BUF_SZIE (2048)
-uint8_t serial2_recv_buf[USART2_RECV_BUF_SZIE];
+uint8_t SP_MAVLINK_recv_buf[USART2_RECV_BUF_SZIE];
 
 //UDP_DATA端口接收缓冲区
 #define UDP_DATA_RECV_BUF_SIZE (2048)
@@ -280,21 +278,21 @@ void Wifi_connected(WiFiEvent_t event, WiFiEventInfo_t info) {
   wifi_connected = true;
   StartUDPService();
   OTA_setup();
-  Serial.println("Successfully connected to Access Point");
+  SP_DEBUG.println("Successfully connected to Access Point");
 }
 
 void Get_IPAddress(WiFiEvent_t event, WiFiEventInfo_t info) {
-  Serial.println("WIFI is connected!");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
+  SP_DEBUG.println("WIFI is connected!");
+  SP_DEBUG.println("IP address: ");
+  SP_DEBUG.println(WiFi.localIP());
 }
 
 void Wifi_disconnected(WiFiEvent_t event, WiFiEventInfo_t info) {
   wifi_connected = false;
-  Serial.println("Disconnected from WIFI access point");
-  Serial.print("WiFi lost connection. Reason: ");
-  Serial.println(info.wifi_sta_disconnected.reason);
-  Serial.println("Reconnecting...");
+  SP_DEBUG.println("Disconnected from WIFI access point");
+  SP_DEBUG.print("WiFi lost connection. Reason: ");
+  SP_DEBUG.println(info.wifi_sta_disconnected.reason);
+  SP_DEBUG.println("Reconnecting...");
   WiFi.begin(ssid_string, pwd_string);
 }
 
@@ -303,8 +301,8 @@ void setup_wifi() {
   wifi_connected = false;
 
   //串口初始化
-  Serial2.setRxBufferSize(USART2_RECV_BUF_SZIE);
-  Serial2.begin(57600);
+  SP_MAVLINK.setRxBufferSize(USART2_RECV_BUF_SZIE);
+  SP_MAVLINK.begin(115200);
 
   //WiFi断开连接
   WiFi.disconnect(true);
@@ -316,16 +314,16 @@ void setup_wifi() {
   WiFi.onEvent(Wifi_disconnected, ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   //WiFi启动
   WiFi.begin(ssid_string, pwd_string);
-  Serial.println("Waiting for WIFI network...");
+  SP_DEBUG.println("Waiting for WIFI network...");
 }
 
 //================================= WIFI END=====================================================
 void setup() {
   //LED初始化
   pinMode(K1 , OUTPUT);
-  Serial.begin(115200);
+  SP_DEBUG.begin(115200);
 
-  Serial.println("Version 1.02, Characteristics: OTA, Double Serials, BIT");
+  SP_DEBUG.println("Version 1.02, Characteristics: OTA, Double Serials, BIT");
 
   //rtc_wdt_protect_off();    // 看门狗写保护关闭，关闭后可以喂狗
   //rtc_wdt_enable();         // 启动看门狗
@@ -336,15 +334,14 @@ void setup() {
   eeprom_read();
   strcpy(ssid_string,read_ssid);
   strcpy(pwd_string,read_pwd);
-  Serial.print("ssid/pwd:");
-  Serial.print(ssid_string);
-  Serial.print("/");
-  Serial.println(pwd_string);
+  SP_DEBUG.print("ssid/pwd:");
+  SP_DEBUG.print(ssid_string);
+  SP_DEBUG.print("/");
+  SP_DEBUG.println(pwd_string);
   setup_wifi();
 }
 
 void loop() {
-  //rtc_wdt_feed();  //喂狗函数
   ///BLE
   // disconnecting
   if (!deviceConnected && oldDeviceConnected) {
@@ -372,13 +369,13 @@ void loop() {
     //DATA UDP Process
     {
       //check UART2 for data
-      if (Serial2.available()) {
-        size_t len = Serial2.available();
+      if (SP_MAVLINK.available()) {
+        size_t len = SP_MAVLINK.available();
         uart_recv_cnt+=len; //数据长度记录,BIT
         len = len>USART2_RECV_BUF_SZIE?USART2_RECV_BUF_SZIE:len;  //防止超出缓冲区长度
-        Serial2.readBytes(serial2_recv_buf, len);
+        SP_MAVLINK.readBytes(SP_MAVLINK_recv_buf, len);
         udp_Data.beginPacket(remoteIp, udpPort_data);
-        udp_Data.write(serial2_recv_buf, len);
+        udp_Data.write(SP_MAVLINK_recv_buf, len);
         udp_Data.endPacket();
       }
       //send to UART2
@@ -387,7 +384,7 @@ void loop() {
       {
         udp_Data.read(udp_data_recv_buf, packetSize); //读取当前包数据
         udp_recv_cnt+=packetSize; //数据长度记录,BIT
-        Serial2.write(udp_data_recv_buf, packetSize);
+        SP_MAVLINK.write(udp_data_recv_buf, packetSize);
       }
     }
     
@@ -399,7 +396,7 @@ void loop() {
       {
         udp_RC.read(udp_data_recv_buf, packetSize); //读取当前包数据
         udp_rc_recv_cnt+=packetSize; //数据长度记录,RC
-        Serial.write(udp_data_recv_buf, packetSize);
+        SP_DEBUG.write(udp_data_recv_buf, packetSize);
       }
     }
 
@@ -414,8 +411,8 @@ void loop() {
       udp_BIT.printf("udp_recv_cnt: %ld uart_recv_cnt: %ld udp_rc_recv_cnt: %ld\n", udp_recv_cnt,uart_recv_cnt,udp_rc_recv_cnt);
       udp_BIT.endPacket();
       digitalWrite(K1, 1 - digitalRead(K1));
-      //Serial.print("RSSI: ");
-      //Serial.println(WiFi.RSSI());
+      //SP_DEBUG.print("RSSI: ");
+      //SP_DEBUG.println(WiFi.RSSI());
 
       //BLE 打印
       if (deviceConnected) {
